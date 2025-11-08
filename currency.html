@@ -3,12 +3,31 @@
 <head>
     <title>Currency Rates</title>
     <style>
-        body { font-family: sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        h2 { margin-bottom: 5px; }
-        button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #dfe2e5; text-align: left; padding: 8px; }
+        th { background-color: #f6f8fa; }
+        h1, h2 { color: #24292e; }
+        button { 
+            padding: 10px 16px; 
+            font-size: 14px; 
+            font-weight: 600;
+            color: #fff;
+            background-color: #2ea44f;
+            border: 1px solid rgba(27, 31, 35, 0.15);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #2c974b; }
+        #error-box {
+            color: #d73a49;
+            background-color: #fddfdf;
+            border: 1px solid #d73a49;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -16,6 +35,7 @@
 <h1>Azerbaijan Central Bank Currency Rates</h1>
 <button onclick="fetchAndDisplayCurrencies()">Get Latest Currencies</button>
 <h2 id="date-header"></h2>
+<div id="error-box"></div>
 <table id="currency-table" style="display:none;">
     <thead>
         <tr>
@@ -26,46 +46,46 @@
         </tr>
     </thead>
     <tbody>
-        <!-- Currency data will be inserted here by JavaScript -->
+        <!-- Currency data will be inserted here -->
     </tbody>
 </table>
 
 <script>
 async function fetchAndDisplayCurrencies() {
-    // Get today's date in dd.mm.yyyy format
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString('de-DE', {
-        day: '2-digit', month: '2-digit', year: 'numeric'
-    });
+    // Hide previous errors and table
+    const errorBox = document.getElementById("error-box");
+    const currencyTable = document.getElementById("currency-table");
+    errorBox.style.display = 'none';
+    currencyTable.style.display = 'none';
 
     try {
-        // Call our PHP script. It will handle finding the latest available XML.
-        const response = await fetch(`download.php?date=${formattedDate}`);
+        // We no longer need to send a date; the PHP script will figure out the latest.
+        const response = await fetch(`download.php`);
         
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(errorText || `Server responded with status: ${response.status}`);
+            throw new Error(errorText || `Server error: ${response.status}`);
         }
 
         const xmlString = await response.text();
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlString, "application/xml");
 
-        // Check if the XML is valid
         if (xmlDoc.querySelector("parsererror")) {
-            throw new Error("Failed to parse the XML data.");
+            throw new Error("Failed to parse the XML data received from the server.");
         }
 
-        const table = document.getElementById("currency-table");
-        const tableBody = table.getElementsByTagName("tbody")[0];
+        const tableBody = currencyTable.getElementsByTagName("tbody")[0];
         tableBody.innerHTML = ""; // Clear previous data
 
-        // Get the date from the XML file and display it
         const valCurs = xmlDoc.getElementsByTagName("ValCurs")[0];
+        if (!valCurs) {
+             throw new Error("The XML data is not in the expected format (missing 'ValCurs' tag).");
+        }
+
         const displayDate = valCurs.getAttribute("Date");
         document.getElementById("date-header").textContent = `Rates for ${displayDate}`;
 
-        // Populate the table with currency data
         const valutes = xmlDoc.getElementsByTagName("Valute");
         for (const valute of valutes) {
             const code = valute.getAttribute("Code");
@@ -80,12 +100,13 @@ async function fetchAndDisplayCurrencies() {
             row.insertCell(3).textContent = value;
         }
 
-        table.style.display = 'table'; // Show the table
+        currencyTable.style.display = 'table';
 
     } catch (err) {
         console.error("Fetch Error:", err);
-        alert(`Failed to get currency data: ${err.message}`);
-        document.getElementById("date-header").textContent = "Could not load data.";
+        errorBox.textContent = `Error: ${err.message}`;
+        errorBox.style.display = 'block';
+        document.getElementById("date-header").textContent = "";
     }
 }
 </script>
