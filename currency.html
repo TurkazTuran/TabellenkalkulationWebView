@@ -1,116 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Currency Rates</title>
+    <title>Currency Rates by Date</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; }
+        .container { max-width: 800px; margin: 20px auto; padding: 15px; }
+        .controls { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        label { font-weight: 600; }
+        input[type="date"] { padding: 8px; font-size: 14px; border: 1px solid #dfe2e5; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #dfe2e5; text-align: left; padding: 8px; }
         th { background-color: #f6f8fa; }
         h1, h2 { color: #24292e; }
         button { 
-            padding: 10px 16px; 
-            font-size: 14px; 
-            font-weight: 600;
-            color: #fff;
-            background-color: #2ea44f;
-            border: 1px solid rgba(27, 31, 35, 0.15);
-            border-radius: 6px;
-            cursor: pointer;
+            padding: 10px 16px; font-size: 14px; font-weight: 600; color: #fff;
+            background-color: #2ea44f; border: 1px solid rgba(27, 31, 35, 0.15);
+            border-radius: 6px; cursor: pointer;
         }
         button:hover { background-color: #2c974b; }
         #error-box {
-            color: #d73a49;
-            background-color: #fddfdf;
-            border: 1px solid #d73a49;
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: 6px;
-            display: none;
+            color: #d73a49; background-color: #fddfdf; border: 1px solid #d73a49;
+            padding: 15px; margin-top: 15px; border-radius: 6px; display: none;
         }
     </style>
 </head>
 <body>
 
-<h1>Azerbaijan Central Bank Currency Rates</h1>
-<button onclick="fetchAndDisplayCurrencies()">Get Latest Currencies</button>
-<h2 id="date-header"></h2>
-<div id="error-box"></div>
-<table id="currency-table" style="display:none;">
-    <thead>
-        <tr>
-            <th>Code</th>
-            <th>Nominal</th>
-            <th>Name</th>
-            <th>Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Currency data will be inserted here -->
-    </tbody>
-</table>
+<div class="container">
+    <h1>Azerbaijan Central Bank Currency Rates</h1>
+
+    <div class="controls">
+        <label for="date-picker">Select Date:</label>
+        <input type="date" id="date-picker">
+        <button onclick="fetchAndDisplayCurrencies()">Get Currencies for Selected Date</button>
+    </div>
+
+    <h2 id="date-header"></h2>
+    <div id="error-box"></div>
+    <table id="currency-table" style="display:none;">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Nominal</th>
+                <th>Name</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Currency data will be inserted here -->
+        </tbody>
+    </table>
+</div>
 
 <script>
-async function fetchAndDisplayCurrencies() {
-    const errorBox = document.getElementById("error-box");
-    const currencyTable = document.getElementById("currency-table");
-    const dateHeader = document.getElementById("date-header");
-    
-    errorBox.style.display = 'none';
-    currencyTable.style.display = 'none';
-    dateHeader.textContent = "Fetching...";
+    // When the page loads, set the date picker's value to today
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date();
+        // Format to YYYY-MM-DD for the date input
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('date-picker').value = `${yyyy}-${mm}-${dd}`;
+    });
 
-    try {
-        const response = await fetch(`download.php`);
+    async function fetchAndDisplayCurrencies() {
+        const datePicker = document.getElementById('date-picker');
+        const selectedDate = datePicker.value; // This will be in YYYY-MM-DD format
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || `Server error: ${response.status}`);
+        const errorBox = document.getElementById("error-box");
+        const currencyTable = document.getElementById("currency-table");
+        const dateHeader = document.getElementById("date-header");
+        
+        errorBox.style.display = 'none';
+        currencyTable.style.display = 'none';
+        dateHeader.textContent = "Fetching...";
+
+        if (!selectedDate) {
+            errorBox.textContent = "Please select a date first.";
+            errorBox.style.display = 'block';
+            dateHeader.textContent = "";
+            return;
         }
 
-        const xmlString = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+        try {
+            // Pass the selected date to the PHP script
+            const response = await fetch(`download.php?date=${selectedDate}`);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `Server error: ${response.status}`);
+            }
 
-        if (xmlDoc.querySelector("parsererror")) {
-            console.error("Parser Error:", xmlDoc.querySelector("parsererror").textContent);
-            throw new Error("Failed to parse the XML data received from the server. The data may not be valid XML.");
+            const xmlString = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+
+            if (xmlDoc.querySelector("parsererror")) {
+                throw new Error("Failed to parse XML. The data received may not be in a valid format.");
+            }
+
+            const valCurs = xmlDoc.getElementsByTagName("ValCurs")[0];
+            if (!valCurs) {
+                throw new Error("The XML data is not in the expected format (missing '<ValCurs>' tag).");
+            }
+
+            const tableBody = currencyTable.getElementsByTagName("tbody")[0];
+            tableBody.innerHTML = "";
+
+            const displayDate = valCurs.getAttribute("Date");
+            dateHeader.textContent = `Rates for ${displayDate}`;
+
+            const valutes = xmlDoc.getElementsByTagName("Valute");
+            for (const valute of valutes) {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = valute.getAttribute("Code");
+                row.insertCell(1).textContent = valute.getElementsByTagName("Nominal")[0].textContent;
+                row.insertCell(2).textContent = valute.getElementsByTagName("Name")[0].textContent;
+                row.insertCell(3).textContent = valute.getElementsByTagName("Value")[0].textContent;
+            }
+
+            currencyTable.style.display = 'table';
+
+        } catch (err) {
+            console.error("Fetch Error Details:", err);
+            errorBox.textContent = `Error: ${err.message}`;
+            errorBox.style.display = 'block';
+            dateHeader.textContent = "";
         }
-
-        const valCurs = xmlDoc.getElementsByTagName("ValCurs")[0];
-        if (!valCurs) {
-            throw new Error("The XML data is not in the expected format (missing '<ValCurs>' tag).");
-        }
-
-        const tableBody = currencyTable.getElementsByTagName("tbody")[0];
-        tableBody.innerHTML = "";
-
-        const displayDate = valCurs.getAttribute("Date");
-        dateHeader.textContent = `Rates for ${displayDate}`;
-
-        const valutes = xmlDoc.getElementsByTagName("Valute");
-        for (const valute of valutes) {
-            const code = valute.getAttribute("Code");
-            const nominal = valute.getElementsByTagName("Nominal")[0].textContent;
-            const name = valute.getElementsByTagName("Name")[0].textContent;
-            const value = valute.getElementsByTagName("Value")[0].textContent;
-
-            const row = tableBody.insertRow();
-            row.insertCell(0).textContent = code;
-            row.insertCell(1).textContent = nominal;
-            row.insertCell(2).textContent = name;
-            row.insertCell(3).textContent = value;
-        }
-
-        currencyTable.style.display = 'table';
-
-    } catch (err) {
-        console.error("Fetch Error Details:", err);
-        errorBox.textContent = `Error: ${err.message}`;
-        errorBox.style.display = 'block';
-        dateHeader.textContent = "";
     }
-}
 </script>
 
 </body>
