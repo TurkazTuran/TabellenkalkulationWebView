@@ -1,30 +1,39 @@
 <?php
-// Get the start date from the query string, or default to today
-$dateStr = $_GET['date'] ?? date('d.m.Y');
-$date = DateTime::createFromFormat('d.m.Y', $dateStr);
+// Set a default timezone to avoid potential issues
+date_default_timezone_set('Asia/Baku');
 
-// Try to find the latest XML for up to 7 days
+// Start with today's date
+$date = new DateTime();
+
+// Try to find the latest XML file, going back up to 7 days
 for ($i = 0; $i < 7; $i++) {
+    // Format the date as dd.mm.YYYY
     $formattedDate = $date->format('d.m.Y');
     $url = "https://cbar.az/currencies/{$formattedDate}.xml";
     
-    // Use a context to set a timeout and check headers
-    $context = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
-    $xml = @file_get_contents($url, false, $context);
+    // Use cURL for a more robust request
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10); // 10-second timeout
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    $xml = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
     
-    // Check if the request was successful and returned content
-    if ($xml !== FALSE && strpos($http_response_header[0], "200 OK") !== false) {
+    // Check if the request was successful and returned valid XML content
+    if ($http_code == 200 && $xml && strpos($xml, '<ValCurs') !== false) {
         // Successfully fetched the XML, send it to the client
         header('Content-Type: application/xml');
         echo $xml;
         exit; // Stop the script
     }
     
-    // If not found, go to the previous day
+    // If not found or failed, go to the previous day
     $date->modify('-1 day');
 }
 
 // If no XML was found in the last 7 days, return an error
 http_response_code(404);
-echo "Error: Could not find currency data for the last 7 days.";
+echo "Could not find currency data from cbar.az for the last 7 days.";
 ?>
