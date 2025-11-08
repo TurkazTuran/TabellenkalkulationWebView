@@ -311,7 +311,7 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
         <input id="dateInput" type="date" />
       </div>
       <div class="input-group">
-        <label for="filterSelect">Valyuta kodu və ya adını seç</label>
+        <label for="filterSelect">Valyuta adını seç</label>
         <select id="filterSelect">
           <option value="__ALL__">Hamısı</option>
         </select>
@@ -539,6 +539,16 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
     }
   }
 
+  function getText(node, tag) {
+    const el = node.getElementsByTagName(tag)[0];
+    return el ? el.textContent.trim() : '';
+  }
+
+  // Adın əvvəlində ola bilən rəqəmi sil (məs: "1 ABŞ DOLLARI" -> "ABŞ DOLLARI")
+  function cleanName(name) {
+    return String(name || '').replace(/^\s*\d+\s+/, '').trim();
+  }
+
   function renderRates(xmlDoc) {
     const valCurs = xmlDoc.getElementsByTagName('ValCurs')[0];
     if (!valCurs) { showError('Kök <ValCurs> yoxdur.'); return; }
@@ -573,51 +583,57 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
   function populateFilterOptions() {
     const prevValue = filterSelect.value;
     filterSelect.innerHTML = '<option value="__ALL__">Hamısı</option>';
-    const optionsSet = new Set();
-    currentData.forEach(d => {
-      if (d.Code) optionsSet.add(d.Code);
-      if (d.Name) optionsSet.add(d.Name);
-    });
-    [...optionsSet].sort().forEach(opt => {
+
+    const names = Array.from(new Set(
+      currentData.map(d => cleanName(d.Name)).filter(Boolean)
+    )).sort();
+
+    names.forEach(n => {
       const o = document.createElement('option');
-      o.value = opt; o.textContent = opt;
+      o.value = n;
+      o.textContent = n;
       filterSelect.appendChild(o);
     });
-    if (optionsSet.has(prevValue)) filterSelect.value = prevValue; else filterSelect.value = '__ALL__';
+
+    if (names.includes(prevValue)) filterSelect.value = prevValue; else filterSelect.value = '__ALL__';
   }
 
   function populateConverterOptions() {
-    const codes = currentData.map(d => d.Code).filter(Boolean).sort();
+    const options = currentData
+      .map(d => ({ code: d.Code, name: cleanName(d.Name) }))
+      .filter(o => o.code && o.name)
+      .sort((a,b) => a.name.localeCompare(b.name, 'az'));
+
     fromCurrency.innerHTML = '';
     toCurrency.innerHTML = '';
-    for (const c of codes) {
+
+    for (const {code, name} of options) {
       const o1 = document.createElement('option');
-      o1.value = c; o1.textContent = c;
+      o1.value = code; o1.textContent = name;
       fromCurrency.appendChild(o1);
       const o2 = document.createElement('option');
-      o2.value = c; o2.textContent = c;
+      o2.value = code; o2.textContent = name;
       toCurrency.appendChild(o2);
     }
-    if (codes.includes('EUR')) fromCurrency.value = 'EUR';
-    if (codes.includes('AZN')) toCurrency.value = 'AZN';
+
+    if (options.some(o => o.code === 'EUR')) fromCurrency.value = 'EUR';
+    if (options.some(o => o.code === 'AZN')) toCurrency.value = 'AZN';
     if (!fromCurrency.value) fromCurrency.selectedIndex = 0;
     if (!toCurrency.value || toCurrency.value === fromCurrency.value) {
       toCurrency.selectedIndex = Math.min(1, toCurrency.options.length - 1);
     }
   }
 
-  function getText(node, tag) {
-    const el = node.getElementsByTagName(tag)[0];
-    return el ? el.textContent.trim() : '';
-  }
-
+  /* Filtrləmə */
   function applyFilter() {
     const selected = filterSelect.value;
     const rows = Array.from(tbody.querySelectorAll('tr'));
     let visibleCount = 0;
     rows.forEach(r => {
-      const cells = Array.from(r.children).map(c => c.textContent);
-      const match = selected === '__ALL__' || cells.some(txt => txt === selected);
+      const cells = Array.from(r.children);
+      const nameCell = cells[2] ? cells[2].textContent : '';
+      const rowName = cleanName(nameCell);
+      const match = selected === '__ALL__' || rowName === selected;
       r.style.display = match ? '' : 'none';
       if (match) visibleCount++;
     });
@@ -625,6 +641,7 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
     rowCount.textContent = visibleCount + ' sətr';
   }
 
+  /* Sıralama */
   function handleSort(key, th) {
     if (sortState.key === key) { sortState.dir = -sortState.dir; }
     else { sortState.key = key; sortState.dir = 1; }
@@ -681,6 +698,11 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
     return value / nominal;
   }
 
+  function getDisplayNameByCode(code) {
+    const d = currentData.find(x => x.Code === code);
+    return d ? cleanName(d.Name) : code;
+  }
+
   function updateConversion() {
     if (!currentData.length) {
       convResult.textContent = '';
@@ -699,9 +721,11 @@ th:nth-child(4), td:nth-child(4){ width:20%; }
       convResult.textContent = 'Məzənnə mövcud deyil.';
       return;
     }
-    let result = from === to ? amount : amount * rFrom / rTo;
+    const result = from === to ? amount : amount * rFrom / rTo;
+    const fromName = getDisplayNameByCode(from);
+    const toName = getDisplayNameByCode(to);
     const formatted = formatNumber(result);
-    convResult.innerHTML = `Nəticə: <strong>${formatted} ${to}</strong><small>1 ${from} = ${formatNumber(rFrom / rTo)} ${to}</small>`;
+    convResult.innerHTML = `Nəticə: <strong>${formatted} ${toName}</strong><small>1 ${fromName} = ${formatNumber(rFrom / rTo)} ${toName}</small>`;
   }
 
   function formatNumber(num) {
