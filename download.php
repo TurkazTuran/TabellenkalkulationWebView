@@ -1,53 +1,58 @@
 <?php
-// Set a default timezone to avoid potential issues with date functions
+// Set a default timezone
 date_default_timezone_set('Asia/Baku');
 
-// Start with today's date
-$date = new DateTime();
+// Expect a date in YYYY-MM-DD format from the query string
+$dateStr = $_GET['date'] ?? '';
 
-// Loop backwards for up to 7 days to find the latest valid currency data
-for ($i = 0; $i < 7; $i++) {
-    $formattedDate = $date->format('d.m.Y');
-    $url = "https://cbar.az/currencies/{$formattedDate}.xml";
-    
-    // Using a stream context is often more reliable and requires no extensions
-    $context = stream_context_create(['http' => [
-        'timeout' => 10,
-        'ignore_errors' => true // Allows us to read the response body on errors
-    ]]);
-    
-    $response = @file_get_contents($url, false, $context);
-    
-    // $http_response_header is automatically populated by file_get_contents
-    $http_code = 0;
-    if (isset($http_response_header[0])) {
-        preg_match('/HTTP\/1\.[01] (\d{3})/', $http_response_header[0], $matches);
-        if (isset($matches[1])) {
-            $http_code = (int)$matches[1];
-        }
-    }
-
-    // Now, check for a successful response AND valid XML content
-    if ($http_code === 200 && $response) {
-        // Suppress errors for invalid XML and check the result
-        libxml_use_internal_errors(true);
-        $xmlObject = simplexml_load_string($response);
-        libxml_clear_errors();
-        
-        // If simplexml_load_string returns an object, the XML is well-formed
-        if ($xmlObject !== false) {
-            // Success! Send the valid XML to the client and stop.
-            header('Content-Type: application/xml');
-            echo $response;
-            exit;
-        }
-    }
-    
-    // If we're here, it failed. Go to the previous day and try again.
-    $date->modify('-1 day');
+if (empty($dateStr)) {
+    http_response_code(400); // Bad Request
+    echo "Error: A date must be provided in YYYY-MM-DD format.";
+    exit;
 }
 
-// If the loop completes without finding any valid XML, return an error.
+// Create a DateTime object from the input format
+$date = DateTime::createFromFormat('Y-m-d', $dateStr);
+
+if ($date === false) {
+    http_response_code(400); // Bad Request
+    echo "Error: Invalid date format. Please use YYYY-MM-DD.";
+    exit;
+}
+
+// Format the date to dd.m.YYYY for the cbar.az URL
+$formattedDate = $date->format('d.m.Y');
+$url = "https://cbar.az/currencies/{$formattedDate}.xml";
+
+// Use a stream context to fetch the URL and handle potential errors
+$context = stream_context_create(['http' => [
+    'timeout' => 10,
+    'ignore_errors' => true
+]]);
+$response = @file_get_contents($url, false, $context);
+
+// Check the HTTP status code from the response headers
+$http_code = 0;
+if (isset($http_response_header[0])) {
+    preg_match('/HTTP\/[12]\.[01] (\d{3})/', $http_response_header[0], $matches);
+    $http_code = isset($matches[1]) ? (int)$matches[1] : 0;
+}
+
+// Check for a successful response and validate the XML
+if ($http_code === 200 && $response) {
+    libxml_use_internal_errors(true);
+    $xmlObject = simplexml_load_string($response);
+    libxml_clear_errors();
+    
+    if ($xmlObject !== false) {
+        // Success: send the valid XML to the client
+        header('Content-Type: application/xml');
+        echo $response;
+        exit;
+    }
+}
+
+// If we reach here, it means no valid XML was found for the selected date
 http_response_code(404);
-echo "Failed to retrieve valid currency XML from cbar.az for the last 7 days.";
+echo "No currency data was found for the selected date ({$formattedDate}). It might be a weekend, a holiday, or a future date.";
 ?>
