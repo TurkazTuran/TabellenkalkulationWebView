@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="az">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="color-scheme" content="light dark" />
   <title>TurkazTuran | Web</title>
-  <meta name="description" content="Beautiful, animated, responsive landing page linking to project HTML pages." />
+  <meta name="description" content="Modern, animated, responsive index with live previews of your HTML pages." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,8 +26,8 @@
       --radius: 16px;
       --ring: 0 0 0 2px color-mix(in oklab, var(--accent) 50%, transparent);
       --glass-blur: blur(10px);
+      --frame-h: 440px;
     }
-
     [data-theme="light"] {
       --bg: #f7f9fc;
       --bg-2: #eaf0f7;
@@ -52,7 +52,6 @@
       overflow-x: hidden;
     }
 
-    /* Animated gradient overlay */
     .gradient-overlay {
       position: fixed;
       inset: -20%;
@@ -94,9 +93,7 @@
     }
     .brand .title { font-weight: 800; letter-spacing: 0.2px; font-size: 1.05rem; }
 
-    .controls {
-      display: flex; align-items: center; gap: 10px;
-    }
+    .controls { display: flex; align-items: center; gap: 10px; }
     .toggle {
       border: 1px solid color-mix(in oklab, var(--text) 15%, transparent);
       background: var(--card);
@@ -110,62 +107,10 @@
     }
     .toggle:hover { background: var(--card-hover); }
 
-    main {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 28px 20px 60px;
-    }
-
-    .hero {
-      display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px; align-items: center;
-      margin: 26px 0 10px;
-    }
-    .hero-card {
-      padding: 24px;
-      background: var(--card);
-      border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
-      border-radius: calc(var(--radius) + 4px);
-      backdrop-filter: var(--glass-blur);
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-    }
-    .hero-card::after {
-      content: "";
-      position: absolute; inset: -2px;
-      border-radius: inherit;
-      background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 30%, transparent), transparent 40%, color-mix(in oklab, var(--accent-2) 25%, transparent));
-      filter: blur(8px) opacity(0.35);
-      z-index: -1;
-    }
-    .kicker { color: var(--muted); font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; font-size: 0.78rem; }
-    h1 { margin: 8px 0 12px; font-size: clamp(1.6rem, 2.4vw + 1rem, 2.6rem); line-height: 1.1; }
-    .sub { color: var(--muted); font-weight: 400; font-size: 0.98rem; }
-
-    .hero-visual {
-      min-height: 180px;
-      position: relative;
-      display: grid; place-items: center;
-    }
-    .orb {
-      width: min(90%, 360px); aspect-ratio: 1;
-      border-radius: 50%;
-      background:
-        radial-gradient(40% 40% at 30% 30%, color-mix(in oklab, var(--accent) 65%, transparent), transparent 60%),
-        radial-gradient(55% 55% at 70% 60%, color-mix(in oklab, var(--accent-2) 65%, transparent), transparent 60%),
-        radial-gradient(50% 50% at 50% 80%, color-mix(in oklab, var(--accent-3) 65%, transparent), transparent 60%);
-      filter: saturate(140%) blur(0.2px);
-      box-shadow: inset 0 0 40px rgba(255,255,255,0.12), 0 25px 80px color-mix(in oklab, var(--accent-2) 25%, transparent);
-      animation: float 7s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%,100% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-10px) rotate(1deg); }
-    }
+    main { max-width: 1100px; margin: 0 auto; padding: 22px 20px 60px; }
 
     .toolbar {
-      margin: 28px 0 16px;
+      margin: 6px 0 18px;
       display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
     }
     .search {
@@ -181,13 +126,8 @@
       color: var(--text); font-size: 0.98rem;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-    @media (max-width: 950px) { .hero { grid-template-columns: 1fr; } .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
 
     .card {
       position: relative;
@@ -195,18 +135,19 @@
       border: 1px solid color-mix(in oklab, var(--text) 12%, transparent);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      overflow: clip;
+      overflow: hidden;
       transition: transform .35s cubic-bezier(.2,.8,.2,1), background .2s ease, border-color .2s ease;
       backdrop-filter: var(--glass-blur);
       will-change: transform;
     }
     .card:hover {
-      transform: translateY(-6px) scale(1.01);
+      transform: translateY(-4px);
       background: var(--card-hover);
-      border-color: color-mix(in oklab, var(--accent) 35%, transparent);
+      border-color: color-mix(in oklab, var(--accent) 30%, transparent);
       box-shadow: 0 14px 35px color-mix(in oklab, var(--accent-2) 15%, transparent);
     }
-    .card a {
+
+    .card .head {
       display: grid; grid-template-columns: 56px 1fr auto; gap: 14px; align-items: center;
       color: inherit; text-decoration: none; padding: 16px;
     }
@@ -217,7 +158,7 @@
       box-shadow: inset 0 0 20px rgba(255,255,255,.12);
     }
     .card .meta { display: grid; gap: 4px; }
-    .card .title { font-weight: 700; letter-spacing: .2px; }
+    .card .title { font-weight: 800; letter-spacing: .2px; font-size: 1.02rem; }
     .card .desc { color: var(--muted); font-size: .9rem; }
     .arrow {
       width: 36px; height: 36px; border-radius: 999px;
@@ -227,6 +168,52 @@
     }
     .card:hover .arrow { transform: translateX(4px); background: color-mix(in oklab, var(--accent) 40%, transparent); }
 
+    .preview {
+      position: relative;
+      border-top: 1px solid color-mix(in oklab, var(--text) 10%, transparent);
+      background: color-mix(in oklab, var(--bg-2) 40%, transparent);
+    }
+    .frame-wrap {
+      position: relative;
+      width: 100%;
+      height: var(--frame-h);
+      overflow: hidden;
+      border-radius: 0 0 var(--radius) var(--radius);
+      isolation: isolate;
+    }
+    .frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #0b0f14;
+      opacity: 0;
+      transform: translateY(6px) scale(0.995);
+      transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.2,1);
+    }
+    .frame.loaded {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .skeleton {
+      position: absolute; inset: 0; border-radius: inherit;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      filter: saturate(120%);
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .resize-hint {
+      position: absolute; right: 10px; bottom: 8px;
+      color: var(--muted); font-size: 12px; opacity: .8;
+      background: rgba(0,0,0,.2); padding: 4px 8px; border-radius: 999px;
+      pointer-events: none;
+    }
+    .frame-wrap.resizable { resize: vertical; min-height: 260px; }
+
     .empty {
       display: none;
       margin: 24px 0; padding: 16px;
@@ -235,12 +222,10 @@
       color: var(--muted);
     }
 
-    footer {
-      margin-top: 36px; color: var(--muted); text-align: center; font-size: 0.9rem;
-    }
+    footer { margin-top: 28px; color: var(--muted); text-align: center; font-size: 0.9rem; }
 
     @media (prefers-reduced-motion: reduce) {
-      .gradient-overlay, .orb, .card:hover, .arrow, .card { animation: none !important; transition: none !important; }
+      .gradient-overlay, .card, .frame { animation: none !important; transition: none !important; }
     }
   </style>
 </head>
@@ -254,59 +239,44 @@
         <span class="title">TurkazTuran / web</span>
       </a>
       <div class="controls">
-        <button id="themeToggle" class="toggle" type="button" aria-pressed="false" title="Toggle theme">
+        <button id="themeToggle" class="toggle" type="button" aria-pressed="false" title="Tema dəyiş">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke="currentColor" stroke-width="1.6"/>
           </svg>
-          <span>Theme</span>
+          <span>Tema</span>
         </button>
       </div>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-card">
-        <div class="kicker">Welcome</div>
-        <h1>Explore your pages in a modern, animated hub</h1>
-        <p class="sub">
-          Smooth animations, glass design, and a responsive layout that looks great on desktop and mobile. Use the search to quickly find a page.
-        </p>
-      </div>
-      <div class="hero-visual">
-        <div class="orb" aria-hidden="true"></div>
-      </div>
-    </section>
-
-    <section class="toolbar" aria-label="Search and Filters">
+    <section class="toolbar" aria-label="Search">
       <div class="search" role="search">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/>
           <path d="M20 20L17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
         </svg>
-        <input id="searchInput" type="search" placeholder="Search pages…" autocomplete="off" aria-label="Search pages">
+        <input id="searchInput" type="search" placeholder="Səhifələrdə axtar…" autocomplete="off" aria-label="Səhifələrdə axtar">
       </div>
     </section>
 
     <section>
       <div id="cards" class="grid" role="list"></div>
-      <div id="empty" class="empty" role="status">No pages match your search.</div>
+      <div id="empty" class="empty" role="status">Axtarışa uyğun səhifə tapılmadı.</div>
     </section>
 
     <footer>
-      Built with ❤️ for <strong>TurkazTuran/web</strong>. Fully responsive • Light/Dark theme • Subtle motion.
+      Built with ❤️ for <strong>TurkazTuran/web</strong>. Live previews • Responsive • Light/Dark theme.
     </footer>
   </main>
 
   <script>
-    // Persist and apply theme
+    // Theme
     (function() {
       const root = document.documentElement;
       const key = 'tt_theme';
       const saved = localStorage.getItem(key);
-      if (saved === 'light' || saved === 'dark') {
-        document.body.setAttribute('data-theme', saved);
-      }
+      if (saved === 'light' || saved === 'dark') document.body.setAttribute('data-theme', saved);
       const btn = document.getElementById('themeToggle');
       const apply = (mode) => {
         document.body.setAttribute('data-theme', mode);
@@ -317,30 +287,14 @@
         const current = document.body.getAttribute('data-theme') || 'dark';
         apply(current === 'dark' ? 'light' : 'dark');
       });
-      // Default to dark unless saved
       if (!saved) apply('dark');
     })();
 
-    // Define your pages here (discovered from repository)
+    // Pages discovered in the repo with requested titles
     const pages = [
-      {
-        title: 'Namaz',
-        href: 'Namaz.html',
-        desc: 'Prayer-focused page',
-        icon: 'moon'
-      },
-      {
-        title: 'Ausgaben Rechner',
-        href: 'ausgaben_rechner.html',
-        desc: 'Expense calculator',
-        icon: 'calc'
-      },
-      {
-        title: 'Currency',
-        href: 'currency.html',
-        desc: 'Exchange rates and converter',
-        icon: 'money'
-      }
+      { title: 'Namaz Vakti',        href: 'Namaz.html',              desc: 'Namaz vaxtları və məlumat', icon: 'moon'  },
+      { title: 'Aylıq Xərclər',      href: 'ausgaben_rechner.html',   desc: 'Aylıq xərclər kalkulyatoru', icon: 'calc'  },
+      { title: 'Valyuta Kursu',      href: 'currency.html',           desc: 'Kurslar və çevirici',        icon: 'money' },
     ];
 
     function iconSVG(kind) {
@@ -355,27 +309,13 @@
       }
     }
 
-    // Render cards
     const list = document.getElementById('cards');
     const empty = document.getElementById('empty');
 
-    function render(items) {
-      list.innerHTML = '';
-      if (!items.length) {
-        empty.style.display = 'block';
-        return;
-      }
-      empty.style.display = 'none';
-
-      items.forEach((p, i) => {
-        const li = document.createElement('article');
-        li.className = 'card';
-        li.setAttribute('role', 'listitem');
-        li.style.animation = 'fadeInUp 600ms cubic-bezier(.2,.8,.2,1) forwards';
-        li.style.opacity = '0';
-        li.style.animationDelay = (80 * i) + 'ms';
-        li.innerHTML = `
-          <a href="${p.href}" aria-label="${p.title}">
+    function cardHTML(p) {
+      return `
+        <article class="card" role="listitem">
+          <a class="head" href="${p.href}" aria-label="${p.title}">
             <div class="icon" aria-hidden="true">${iconSVG(p.icon)}</div>
             <div class="meta">
               <div class="title">${p.title}</div>
@@ -387,8 +327,59 @@
               </svg>
             </div>
           </a>
-        `;
-        list.appendChild(li);
+          <div class="preview">
+            <div class="frame-wrap resizable">
+              <div class="skeleton" aria-hidden="true"></div>
+              <iframe class="frame" title="Ön baxış: ${p.title}" data-src="${p.href}" loading="lazy" referrerpolicy="no-referrer"></iframe>
+              <div class="resize-hint">Drag to resize</div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function render(items) {
+      list.innerHTML = '';
+      if (!items.length) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      items.forEach((p, i) => {
+        const container = document.createElement('div');
+        container.innerHTML = cardHTML(p);
+        const el = container.firstElementChild;
+        el.style.animation = 'fadeInUp 500ms cubic-bezier(.2,.8,.2,1) forwards';
+        el.style.opacity = '0';
+        el.style.animationDelay = (70 * i) + 'ms';
+        list.appendChild(el);
+      });
+      setupLazyFrames();
+    }
+
+    // Lazy-load iframes when visible; show skeleton until load
+    function setupLazyFrames() {
+      const frames = Array.from(document.querySelectorAll('.frame'));
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const iframe = entry.target;
+            if (!iframe.src) iframe.src = iframe.dataset.src;
+          }
+        });
+      }, { rootMargin: '200px 0px' });
+
+      frames.forEach(f => {
+        io.observe(f);
+        f.addEventListener('load', () => {
+          f.classList.add('loaded');
+          const sk = f.parentElement.querySelector('.skeleton');
+          if (sk) sk.remove();
+        }, { once: true });
+        // If iframe errors or blocks, remove skeleton anyway after timeout
+        setTimeout(() => {
+          if (!f.classList.contains('loaded')) {
+            const sk = f.parentElement.querySelector('.skeleton');
+            if (sk) sk.style.opacity = '.2';
+          }
+        }, 4000);
       });
     }
 
@@ -403,7 +394,7 @@
 
     render(pages);
 
-    // Search filter
+    // Search
     const search = document.getElementById('searchInput');
     search.addEventListener('input', (e) => {
       const q = e.target.value.trim().toLowerCase();
