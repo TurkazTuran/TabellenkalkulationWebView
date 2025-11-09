@@ -38,6 +38,7 @@
         --ring: 0 0 0 2px color-mix(in oklab, var(--accent) 50%, transparent);
         --glass-blur: blur(10px);
         --frame-h: 440px;
+        --preview-scale: 0.6;
       }
       [data-theme="light"] {
         --bg: #f7f9fc;
@@ -666,6 +667,22 @@
         isolation: isolate;
         background: color-mix(in oklab, var(--bg) 60%, transparent);
       }
+      .preview-frame {
+        position: absolute;
+        inset: 0;
+        width: calc(100% / var(--preview-scale));
+        height: calc(100% / var(--preview-scale));
+        border: 0;
+        transform: scale(var(--preview-scale));
+        transform-origin: top left;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+        border-radius: inherit;
+      }
+      .preview-frame.visible {
+        opacity: 1;
+      }
       .preview-img {
         position: absolute;
         inset: 0;
@@ -676,6 +693,7 @@
         filter: saturate(105%);
         transition: opacity 0.35s ease,
           transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        z-index: 1;
       }
       .preview-img.visible {
         opacity: 1;
@@ -718,6 +736,13 @@
         color: var(--muted);
         background: color-mix(in oklab, var(--bg) 80%, transparent);
         pointer-events: none;
+      }
+      /* Hide status whenever an image is visible (fallback or real) */
+      .preview-img.visible ~ .preview-status {
+        display: none !important;
+      }
+      .preview-frame.visible ~ .preview-status {
+        display: none !important;
       }
 
       .empty {
@@ -934,6 +959,29 @@
         if (!saved) apply("dark");
       })();
 
+      // Generate lightweight fallback thumbnails for previews
+      function makeFallbackThumb(title, colorStart, colorEnd) {
+        const initials = title
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0] || "")
+          .join("")
+          .toUpperCase() || "TT";
+        const svg = `
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 640 360'>
+          <defs>
+            <linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'>
+              <stop offset='0%' stop-color='${colorStart}' />
+              <stop offset='100%' stop-color='${colorEnd}' />
+            </linearGradient>
+          </defs>
+          <rect fill='url(#g)' width='640' height='360' rx='28' />
+          <text x='50%' y='52%' dominant-baseline='middle' text-anchor='middle' font-family='Inter, sans-serif' font-size='134' font-weight='700' fill='rgba(255,255,255,0.88)' letter-spacing='8'>${initials}</text>
+        </svg>`;
+        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+      }
+
       // Pages discovered in the repo with requested titles
       const pages = [
         {
@@ -941,20 +989,31 @@
           href: "Namaz.html",
           desc: "Namaz vaxtları və məlumat",
           icon: "moon",
+          colors: ["#0f172a", "#1d4ed8"],
         },
         {
           title: "Aylıq Xərclər",
           href: "ausgaben_rechner.html",
           desc: "Aylıq xərclər kalkulyatoru",
           icon: "calc",
+          colors: ["#111827", "#0f766e"],
         },
         {
           title: "Valyuta Kursu",
           href: "currency.html",
           desc: "Kurslar və çevirici",
           icon: "money",
+          colors: ["#0f172a", "#7c3aed"],
         },
       ];
+
+      const fallbackThumbs = new Map();
+      pages.forEach((p) => {
+        const [start, end] = Array.isArray(p.colors)
+          ? p.colors
+          : ["#1f2937", "#0ea5e9"];
+        fallbackThumbs.set(p.href, makeFallbackThumb(p.title, start, end));
+      });
 
       function iconSVG(kind) {
         switch (kind) {
@@ -1019,9 +1078,10 @@
         } səhifəsini aç">
               <div class="preview-wrap">
                 <div class="skeleton" aria-hidden="true"></div>
-                <img class="preview-img" data-page="${p.href}" alt="Ön baxış: ${
-          p.title
-        }" loading="lazy" />
+                <iframe class="preview-frame" title="${p.title} ön baxış" loading="lazy"></iframe>
+                <img class="preview-img visible" src="${
+                  fallbackThumbs.get(p.href) || ""
+                }" data-page="${p.href}" alt="Ön baxış: ${p.title}" loading="lazy" />
                 <div class="preview-status" hidden>Ön baxış gətirilə bilmədi</div>
               </div>
             </a>
@@ -1046,6 +1106,31 @@
           el.style.opacity = "0";
           el.style.animationDelay = 70 * i + "ms";
           list.appendChild(el);
+          const frame = el.querySelector(".preview-frame");
+          const skeleton = el.querySelector(".skeleton");
+          const fallbackImg = el.querySelector(".preview-img");
+          const status = el.querySelector(".preview-status");
+          if (frame) {
+            frame.addEventListener("load", () => {
+              frame.classList.add("visible");
+              if (fallbackImg && fallbackImg.isConnected) fallbackImg.remove();
+              if (skeleton) skeleton.remove();
+              if (status) status.hidden = true;
+            });
+            frame.addEventListener("error", () => {
+              frame.remove();
+              if (skeleton) skeleton.remove();
+              if (fallbackImg) fallbackImg.classList.add("visible");
+              if (status) status.hidden = Boolean(fallbackImg);
+            });
+            // Defer assignment to ensure load listeners are active
+            requestAnimationFrame(() => {
+              frame.src = p.href;
+            });
+          } else if (fallbackImg) {
+            fallbackImg.classList.add("visible");
+            if (skeleton) skeleton.remove();
+          }
         });
         generateScreenshots();
       }
@@ -1092,6 +1177,7 @@
       }
 
       function applyPreview(img, dataUrl) {
+        if (!img || !img.isConnected) return;
         const container = img.parentElement;
         img.src = dataUrl;
         img.dataset.rendered = "true";
@@ -1103,13 +1189,20 @@
       }
 
       function showPreviewError(img) {
+        if (!img || !img.isConnected) return;
         const container = img.parentElement;
         img.dataset.rendered = "true";
+        const page = img.dataset.page;
+        const fallback = page ? fallbackThumbs.get(page) : undefined;
+        if (fallback) {
+          img.src = fallback;
+          img.classList.add("visible");
+        }
         if (container) {
           const skeleton = container.querySelector(".skeleton");
           if (skeleton) skeleton.remove();
           const status = container.querySelector(".preview-status");
-          if (status) status.hidden = false;
+          if (status) status.hidden = Boolean(fallback);
         }
       }
 
@@ -1177,7 +1270,8 @@
     `;
       document.head.appendChild(style);
 
-      render(pages);
+  // Initial render after fallbacks are ready
+  render(pages);
 
       // Responsive nav
       const navMenu = document.getElementById("primary-menu");
