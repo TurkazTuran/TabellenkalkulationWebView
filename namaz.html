@@ -41,6 +41,7 @@
         --text-muted: #cbd5e1;
         --border: rgba(148, 163, 184, 0.1);
         --border-strong: rgba(79, 70, 229, 0.4);
+        --icon-shadow: rgba(15, 23, 42, 0.35);
         color-scheme: dark;
       }
 
@@ -61,6 +62,7 @@
         --text-muted: #475569;
         --border: rgba(71, 85, 105, 0.1);
         --border-strong: rgba(79, 70, 229, 0.3);
+        --icon-shadow: rgba(15, 23, 42, 0.2);
       }
 
       body {
@@ -125,6 +127,7 @@
         color: var(--primary-light);
         background: none;
         -webkit-text-fill-color: initial;
+        filter: drop-shadow(0 6px 12px var(--icon-shadow));
       }
 
       @keyframes float {
@@ -417,6 +420,7 @@
         color: var(--primary-light);
         background: none;
         -webkit-text-fill-color: initial;
+        filter: drop-shadow(0 6px 12px var(--icon-shadow));
       }
 
       .next-prayer-info {
@@ -492,6 +496,8 @@
         font-size: 28px;
         margin-bottom: 8px;
         animation: bounce 2s infinite;
+        filter: drop-shadow(0 6px 12px var(--icon-shadow));
+        text-shadow: 0 0 12px rgba(0, 187, 249, 0.744);
       }
 
       @keyframes bounce {
