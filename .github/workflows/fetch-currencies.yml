@@ -21,6 +21,9 @@ jobs:
       - name: Configure git safe directory (CI)
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Ensure currency-data directory exists
+        run: mkdir -p currency-data
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
