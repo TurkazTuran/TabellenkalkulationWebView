@@ -16,6 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="css/nav.css" />
     <title>Prayer Times</title>
     <style>
       * {
@@ -77,13 +78,26 @@
         );
         color: var(--text);
         min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 12px;
+        display: block;
+        padding: 0;
         -webkit-tap-highlight-color: transparent;
         overflow-x: hidden;
         transition: background 0.3s ease, color 0.3s ease;
+      }
+
+      .prayer-app-shell {
+        min-height: calc(100vh - 96px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 12px 32px;
+      }
+      @media (max-width: 768px) {
+        .prayer-app-shell {
+          min-height: auto;
+          padding: 24px 12px 32px;
+          align-items: flex-start;
+        }
       }
 
       .container {
@@ -696,11 +710,96 @@
     </style>
   </head>
   <body>
-    <div class="container">
+    <header class="tt-site-header">
+      <nav class="nav" aria-label="Əsas naviqasiya">
+        <a class="brand" href="index.html" aria-label="Turkaz Turan ana səhifə">
+          <img class="logo" src="images/logo.svg" alt="logo" width="36" height="36" />
+          <span class="brand-text">
+            <span class="title">Turkaz Turan</span>
+          </span>
+        </a>
+        <button
+          id="menuToggle"
+          class="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="primary-menu"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <defs>
+              <linearGradient
+                id="navToggleGradient"
+                x1="4"
+                y1="7"
+                x2="20"
+                y2="17"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stop-color="#22d3ee" />
+                <stop offset="50%" stop-color="#7c5cff" />
+                <stop offset="100%" stop-color="#6ee7ff" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M4 7h16M4 12h16M4 17h16"
+              stroke="url(#navToggleGradient)"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="sr-only">Menünü aç</span>
+        </button>
+        <div class="menu" id="primary-menu">
+          <a href="namaz.html">Namaz</a>
+          <a href="masraflar.html">Xərclər</a>
+          <a href="currency.html">Valyuta</a>
+        </div>
+        <div class="controls">
+          <button
+            id="siteThemeToggle"
+            class="toggle"
+            type="button"
+            aria-pressed="false"
+            title="Tema dəyiş"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient
+                  id="themeToggleGradient"
+                  x1="6"
+                  y1="6"
+                  x2="20"
+                  y2="20"
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <stop offset="0%" stop-color="#6ee7ff" />
+                  <stop offset="50%" stop-color="#7c5cff" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"
+                stroke="url(#themeToggleGradient)"
+                stroke-width="1.6"
+              />
+            </svg>
+            <span>Tema</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+    <main class="prayer-app-shell">
+      <div class="container">
       <div class="header">
         <div class="app-title">
           <span class="app-icon">🕋</span>
-          PRAYER TIMES
+          Prayer Times
           <span class="app-icon">🕌</span>
         </div>
         <div class="location-display">
@@ -773,7 +872,9 @@
         </button>
       </div>
     </div>
+    </main>
 
+    <script src="scripts/nav.js" defer></script>
   <script>
       const state = {
         prayerData: null,
@@ -782,7 +883,7 @@
         currentLat: null,
         currentLon: null,
         useGPS: false,
-        prayerMethod: "13",
+        prayerMethod: "4",
         notificationsEnabled: false,
         theme: localStorage.getItem("theme") || "dark",
         countdownInterval: null,
@@ -1037,20 +1138,30 @@
           { name: "Asr", time: state.prayerData.asr, key: "asr" },
           { name: "Maghrib", time: state.prayerData.maghrib, key: "maghrib" },
           { name: "Isha", time: state.prayerData.isha, key: "isha" },
-        ];
+        ]
+          .map((prayer) => ({
+            ...prayer,
+            value: extractTimeValue(prayer.time),
+          }))
+          .filter((prayer) => Boolean(prayer.value));
 
         let nextPrayer = null;
         let currentPrayer = null;
+        let nextPrayerIsNextDay = false;
 
         for (let i = 0; i < prayerTimes.length; i++) {
-          if (prayerTimes[i].time > currentTimeStr) {
+          if (prayerTimes[i].value > currentTimeStr) {
             nextPrayer = prayerTimes[i];
             if (i > 0) currentPrayer = prayerTimes[i - 1];
             break;
           }
         }
 
-        if (!nextPrayer) currentPrayer = prayerTimes[prayerTimes.length - 1];
+        if (!nextPrayer) {
+          currentPrayer = prayerTimes[prayerTimes.length - 1];
+          nextPrayer = prayerTimes[0];
+          nextPrayerIsNextDay = true;
+        }
 
         document.querySelectorAll(".prayer-card").forEach((card) => {
           const prayerKey = card.getAttribute("data-prayer");
@@ -1082,7 +1193,7 @@
 
         if (nextPrayer) {
           elements.nextPrayerInfo.textContent = `Next prayer: ${nextPrayer.name}`;
-          updateCountdownDisplay(nextPrayer.time);
+          updateCountdownDisplay(nextPrayer.value, nextPrayerIsNextDay);
         } else {
           elements.nextPrayerInfo.textContent =
             "All prayers for today are complete";
@@ -1090,13 +1201,23 @@
         }
       }
 
-      function updateCountdownDisplay(targetTime) {
+      function extractTimeValue(timeStr) {
+        if (!timeStr) return null;
+        const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+        if (!match) return null;
+        const hours = match[1].padStart(2, "0");
+        const minutes = match[2];
+        return `${hours}:${minutes}`;
+      }
+
+      function updateCountdownDisplay(targetTime, forceNextDay = false) {
+        if (!targetTime) return;
         const [targetHour, targetMinute] = targetTime.split(":").map(Number);
         const now = new Date();
         let target = new Date();
         target.setHours(targetHour, targetMinute, 0, 0);
 
-        if (target < now) target.setDate(target.getDate() + 1);
+        if (forceNextDay || target < now) target.setDate(target.getDate() + 1);
 
         const diff = target - now;
         const hours = Math.floor(diff / 3600000);
