@@ -1,6 +1,7 @@
 <?php
 // Purpose: Fetch the latest 3 available currency XMLs from cbar.az,
-// save them to the repo root as YYYY-MM-DD.xml, and delete older date-named XMLs.
+// save them to currency-data/YYYY-MM-DD.xml, and delete older
+// date-named XMLs in that folder.
 // Exit code 0 = success (at least one file found), 1 = none found in the window.
 
 declare(strict_types=1);
@@ -14,18 +15,28 @@ if (is_dir($repoRoot)) {
     chdir($repoRoot);
 }
 
+// Ensure currency-data directory exists
+$xmlDir = $repoRoot . DIRECTORY_SEPARATOR . 'currency-data';
+if (!is_dir($xmlDir)) {
+    if (!mkdir($xmlDir, 0777, true) && !is_dir($xmlDir)) {
+        fwrite(STDERR, "ERROR: Failed to create directory: {$xmlDir}\n");
+        exit(1);
+    }
+}
+
 $daysToKeep   = 3;   // Keep this many most recent valid days
 $searchWindow = 21;  // Look back up to this many days to find valid data
 $retained     = [];  // Filenames we will keep (YYYY-MM-DD.xml)
 $today        = new DateTime('today');
 
-fwrite(STDOUT, "Starting currency management. Need {$daysToKeep} valid day(s). Searching up to {$searchWindow} days back.\n");
+fwrite(STDOUT, "Starting currency management in {$xmlDir}. Need {$daysToKeep} valid day(s). Searching up to {$searchWindow} days back.\n");
 
 for ($offset = 0; $offset < $searchWindow && count($retained) < $daysToKeep; $offset++) {
     $d = (clone $today)->modify("-{$offset} day");
     $dateForUrl  = $d->format('d.m.Y');   // cbar.az format
     $dateForFile = $d->format('Y-m-d');   // local filename
-    $targetFile  = $dateForFile . '.xml';
+    $targetFile  = $xmlDir . DIRECTORY_SEPARATOR . $dateForFile . '.xml';
+    $targetName  = $dateForFile . '.xml'; // name only for logs
     $url         = "https://cbar.az/currencies/{$dateForUrl}.xml";
 
     fwrite(STDOUT, "Attempting: {$url} ... ");
@@ -54,10 +65,17 @@ for ($offset = 0; $offset < $searchWindow && count($retained) < $daysToKeep; $of
     // Validate XML quickly
     libxml_use_internal_errors(true);
     $xml = simplexml_load_string($body);
+    $errors = libxml_get_errors();
     libxml_clear_errors();
 
     if ($xml === false || !$xml->getName() || strtolower($xml->getName()) !== 'valcurs') {
         fwrite(STDOUT, "invalid XML structure.\n");
+        if (!empty($errors)) {
+            fwrite(STDOUT, "XML errors:\n");
+            foreach ($errors as $error) {
+                fwrite(STDOUT, trim($error->message) . "\n");
+            }
+        }
         continue;
     }
 
@@ -67,16 +85,17 @@ for ($offset = 0; $offset < $searchWindow && count($retained) < $daysToKeep; $of
         $existing = file_get_contents($targetFile);
         if ($existing === $body) {
             $needsWrite = false;
-            fwrite(STDOUT, "unchanged, already present.\n");
+            fwrite(STDOUT, "unchanged, already present at {$targetName}.\n");
         }
     }
 
     if ($needsWrite) {
         file_put_contents($targetFile, $body);
-        fwrite(STDOUT, "saved to {$targetFile}.\n");
+        fwrite(STDOUT, "saved to currency-data/{$targetName}.\n");
     }
 
-    $retained[] = $targetFile;
+    // Track by basename to match cleanup pattern later
+    $retained[] = $targetName;
 }
 
 if (empty($retained)) {
@@ -86,19 +105,20 @@ if (empty($retained)) {
 
 fwrite(STDOUT, "\nRetained files: " . implode(', ', $retained) . "\n");
 
-// Cleanup: delete date-named XMLs (YYYY-MM-DD.xml) not in retained list
+// Cleanup: delete date-named XMLs (YYYY-MM-DD.xml) in currency-data not in retained list
 $pattern = '/^\d{4}-\d{2}-\d{2}\.xml$/';
-$allXml = glob('*.xml') ?: [];
+$allXml = glob($xmlDir . DIRECTORY_SEPARATOR . '*.xml') ?: [];
 $deleted = 0;
 
-foreach ($allXml as $file) {
+foreach ($allXml as $filePath) {
+    $file = basename($filePath);
     if (!preg_match($pattern, $file)) {
         // Skip non date-pattern XML files
         continue;
     }
     if (!in_array($file, $retained, true)) {
-        @unlink($file);
-        fwrite(STDOUT, "Deleted old file: {$file}\n");
+        @unlink($filePath);
+        fwrite(STDOUT, "Deleted old file: currency-data/{$file}\n");
         $deleted++;
     }
 }
